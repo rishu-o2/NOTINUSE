@@ -1,0 +1,10 @@
+# Large source and generated data
+AICity22_Track1_MTMC_Tracking/
+frames/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# VS Code workspace settings
+.vscode/
