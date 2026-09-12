@@ -1,190 +1,299 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, CircleMarker, Popup, Polyline } from 'react-leaflet';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  BarChart,
+  Bar
+} from 'recharts';
 import Sidebar from '../components/Sidebar';
-import CityScene from '../components/CityScene';
+import Topbar from '../components/Topbar';
+import {
+  mockCameras,
+  mockAlerts,
+  mockHourlyTraffic,
+  mockCongestedSegments
+} from '../data/mockData';
 
 export default function Dashboard() {
-  const [vehiclesTracked, setVehiclesTracked] = useState(1284);
-  const [avgSpeed, setAvgSpeed] = useState(32);
-  const [activeTrajectories, setActiveTrajectories] = useState(327);
-  const [ocrAccuracy, setOcrAccuracy] = useState(92.4);
+  const navigate = useNavigate();
 
-  // Live statistical jitter every 3 seconds
+  // Dynamic stat values updated every 3s
+  const [totalVehicles, setTotalVehicles] = useState(1284);
+  const [activeTrajectories, setActiveTrajectories] = useState(327);
+  const [avgSpeed, setAvgSpeed] = useState(32);
+  const [activeAlertCount, setActiveAlertCount] = useState(4);
+
   useEffect(() => {
     const interval = setInterval(() => {
-      setVehiclesTracked((prev) => prev + Math.floor(Math.random() * 9) - 4);
-      setAvgSpeed((prev) => Math.max(20, Math.min(48, prev + (Math.random() > 0.5 ? 1 : -1))));
+      setTotalVehicles((prev) => prev + Math.floor(Math.random() * 7) - 3);
       setActiveTrajectories((prev) => prev + Math.floor(Math.random() * 5) - 2);
-      setOcrAccuracy((prev) => +(91.5 + Math.random() * 2.2).toFixed(1));
+      setAvgSpeed((prev) => Math.max(22, Math.min(45, prev + (Math.random() > 0.5 ? 1 : -1))));
+      setActiveAlertCount((prev) => Math.max(2, Math.min(7, prev + (Math.random() > 0.7 ? 1 : -1))));
     }, 3000);
 
     return () => clearInterval(interval);
   }, []);
 
+  // Road paths connecting cameras for visualization
+  const activeRoads = [
+    [mockCameras[0].pos, mockCameras[1].pos],
+    [mockCameras[1].pos, mockCameras[4].pos],
+    [mockCameras[2].pos, mockCameras[7].pos],
+    [mockCameras[3].pos, mockCameras[0].pos],
+    [mockCameras[4].pos, mockCameras[5].pos]
+  ];
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#050a18] flex select-none">
-      {/* Fixed Left Navigation Sidebar */}
+    <div className="w-screen h-screen bg-[#0f1117] flex overflow-hidden select-none">
       <Sidebar />
 
-      {/* Main 3D Simulation & HUD Viewport */}
-      <main className="relative flex-1 h-screen ml-[210px] overflow-hidden">
-        {/* Fullscreen 3D City Background */}
-        <CityScene opacity={0.9} interactive={true} />
+      <div className="flex-1 ml-[220px] h-screen flex flex-col overflow-y-auto">
+        <Topbar breadcrumb="Dashboard" />
 
-        {/* TOP BAR (Floating) */}
-        <div className="absolute top-5 left-6 right-6 z-20 flex items-center justify-between pointer-events-none">
-          <div className="flex items-center gap-3 bg-white/[0.04] backdrop-blur-[16px] px-5 py-2.5 rounded-2xl border border-[#00d4ff]/20 shadow-[0_0_20px_rgba(0,212,255,0.08)] pointer-events-auto">
-            <h1 className="text-white font-bold text-base tracking-wide flex items-center gap-2">
-              <span className="text-[#00d4ff]">⚡</span> Live Traffic Overview
-            </h1>
-            <div className="h-4 w-[1px] bg-white/20" />
-            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>8 Cameras Live</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 bg-white/[0.04] backdrop-blur-[16px] px-4 py-2 rounded-2xl border border-[#00d4ff]/20 shadow-[0_0_20px_rgba(0,212,255,0.08)] pointer-events-auto">
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] font-mono text-[#00d4ff] uppercase tracking-wider">
-                CLEARANCE LEVEL
-              </span>
-              <span className="text-xs font-bold text-white">COMMAND ADMIN</span>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00d4ff] to-blue-600 flex items-center justify-center font-bold text-xs text-[#050a18]">
-              🛡️
-            </div>
-          </div>
-        </div>
-
-        {/* LEFT SIDE: Hero Stat Card (Floating vertically centered) */}
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-[240px] space-y-4 pointer-events-auto animate-fade-in">
-          {/* Main Large Hero Stat */}
-          <div className="p-6 rounded-[20px] bg-white/[0.04] backdrop-blur-[16px] border border-[#00d4ff]/20 shadow-[0_0_40px_rgba(0,212,255,0.12)]">
-            <div className="text-[11px] font-mono uppercase tracking-widest text-gray-300">
-              VEHICLES TRACKED LIVE
-            </div>
-            <div className="text-5xl font-black text-[#00d4ff] text-glow mt-2 tracking-tight">
-              {vehiclesTracked.toLocaleString()}
-            </div>
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-emerald-400 font-mono">
-              <span>▲ +4.2%</span>
-              <span className="text-gray-400">vs last hour</span>
-            </div>
-          </div>
-
-          {/* Average Speed Stat */}
-          <div className="p-4 rounded-[16px] bg-white/[0.04] backdrop-blur-[16px] border border-[#00d4ff]/20 shadow-[0_0_25px_rgba(0,212,255,0.06)] flex items-center justify-between">
-            <div>
-              <div className="text-[10px] font-mono uppercase tracking-wider text-gray-400">
-                AVG CORRIDOR SPEED
-              </div>
-              <div className="text-2xl font-bold text-white mt-0.5">
-                {avgSpeed} <span className="text-sm font-normal text-[#00d4ff]">km/h</span>
-              </div>
-            </div>
-            <div className="text-2xl">🚗</div>
-          </div>
-        </div>
-
-        {/* RIGHT SIDE: Stacked Cards (Floating right) */}
-        <div className="absolute right-6 top-24 bottom-24 z-20 w-[300px] flex flex-col justify-center space-y-3 pointer-events-auto">
-          {/* Card 1: Recent Alerts */}
-          <div className="p-4 rounded-[16px] bg-white/[0.04] backdrop-blur-[16px] border border-[#00d4ff]/20 shadow-[0_0_25px_rgba(0,212,255,0.06)]">
-            <div className="text-xs font-bold text-white flex items-center justify-between mb-2.5">
-              <span>🚨 Recent Alerts</span>
-              <span className="text-[10px] font-mono text-[#00d4ff]">LIVE STREAM</span>
-            </div>
-            <div className="space-y-2 text-xs font-mono">
-              <div className="flex items-center gap-2 text-gray-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                <span className="truncate">C2 Speeding: DL 01 AB 4492 (84 km/h)</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                <span className="truncate">C5 Wrong Way Lane Detected</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span className="truncate">C7 High Volume Congestion Node</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Top Congested Roads */}
-          <div className="p-4 rounded-[16px] bg-white/[0.04] backdrop-blur-[16px] border border-[#00d4ff]/20 shadow-[0_0_25px_rgba(0,212,255,0.06)]">
-            <div className="text-xs font-bold text-white mb-3">
-              🚦 Top Congested Roads
-            </div>
-            <div className="space-y-2.5">
+        <div className="p-6 space-y-6">
+          {/* SECTION 1: Stat Cards (4 in a row) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1 */}
+            <div className="p-4 bg-[#1a1f2e] border border-[#252d3d] rounded-lg flex items-center justify-between">
               <div>
-                <div className="flex justify-between text-[11px] font-mono text-gray-300 mb-1">
-                  <span>C2 → C3 (Ring Rd)</span>
-                  <span className="text-red-400 font-bold">87%</span>
+                <div className="text-xs text-[#64748b] font-medium">Total Vehicles</div>
+                <div className="text-2xl font-bold text-[#f1f5f9] mt-1">
+                  {totalVehicles.toLocaleString()}
                 </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500 rounded-full" style={{ width: '87%' }} />
-                </div>
+                <div className="text-[11px] text-[#22c55e] mt-1 font-mono">+3.8% vs last hr</div>
               </div>
-              <div>
-                <div className="flex justify-between text-[11px] font-mono text-gray-300 mb-1">
-                  <span>C3 → C5 (Central Spine)</span>
-                  <span className="text-amber-400 font-bold">65%</span>
-                </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-400 rounded-full" style={{ width: '65%' }} />
-                </div>
+              <div className="w-10 h-10 rounded bg-[#141821] border border-[#252d3d] flex items-center justify-center text-lg text-[#3b82f6]">
+                🚗
               </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="p-4 bg-[#1a1f2e] border border-[#252d3d] rounded-lg flex items-center justify-between">
               <div>
-                <div className="flex justify-between text-[11px] font-mono text-gray-300 mb-1">
-                  <span>C1 → C2 (Northern Cross)</span>
-                  <span className="text-cyan-400 font-bold">48%</span>
+                <div className="text-xs text-[#64748b] font-medium">Active Trajectories</div>
+                <div className="text-2xl font-bold text-[#3b82f6] mt-1">
+                  {activeTrajectories}
                 </div>
-                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#00d4ff] rounded-full" style={{ width: '48%' }} />
+                <div className="text-[11px] text-[#64748b] mt-1 font-mono">Correlated across 8 nodes</div>
+              </div>
+              <div className="w-10 h-10 rounded bg-[#141821] border border-[#252d3d] flex items-center justify-center text-lg text-[#3b82f6]">
+                📍
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="p-4 bg-[#1a1f2e] border border-[#252d3d] rounded-lg flex items-center justify-between">
+              <div>
+                <div className="text-xs text-[#64748b] font-medium">Avg Corridor Speed</div>
+                <div className="text-2xl font-bold text-[#f1f5f9] mt-1">
+                  {avgSpeed} <span className="text-sm font-normal text-[#64748b]">km/h</span>
                 </div>
+                <div className="text-[11px] text-[#f59e0b] mt-1 font-mono">Peak congestion active</div>
+              </div>
+              <div className="w-10 h-10 rounded bg-[#141821] border border-[#252d3d] flex items-center justify-center text-lg text-[#f59e0b]">
+                ⚡
+              </div>
+            </div>
+
+            {/* Card 4 */}
+            <div className="p-4 bg-[#1a1f2e] border border-[#252d3d] rounded-lg flex items-center justify-between">
+              <div>
+                <div className="text-xs text-[#64748b] font-medium">Active Alerts</div>
+                <div className="text-2xl font-bold text-[#ef4444] mt-1">
+                  {activeAlertCount}
+                </div>
+                <div className="text-[11px] text-[#ef4444] mt-1 font-mono">1 critical blacklist hit</div>
+              </div>
+              <div className="w-10 h-10 rounded bg-[#141821] border border-[#252d3d] flex items-center justify-center text-lg text-[#ef4444]">
+                🚨
               </div>
             </div>
           </div>
 
-          {/* Card 3: Blacklist Alert */}
-          <div className="p-4 rounded-[16px] bg-red-950/30 backdrop-blur-[16px] border border-red-500/40 shadow-[0_0_30px_rgba(239,68,68,0.18)] animate-pulse">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-red-400 tracking-wide uppercase flex items-center gap-1.5">
-                <span>⚠️</span> Blacklist Alert
-              </span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/30 text-red-300">
-                HOTLIST
-              </span>
-            </div>
-            <div className="mt-2 text-white font-mono font-bold text-sm">
-              DL 08 CX 9901
-            </div>
-            <div className="text-[11px] font-mono text-red-300 mt-0.5">
-              Flagged: Suspected Vehicle · Spotted at C4
-            </div>
-          </div>
-        </div>
+          {/* SECTION 2: Map + Alerts (Side by Side) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* LEFT (65%): Map */}
+            <div className="lg:col-span-8 bg-[#1a1f2e] border border-[#252d3d] rounded-lg p-4 flex flex-col h-[380px]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#252d3d] mb-3">
+                <div className="text-xs font-semibold text-[#f1f5f9] flex items-center gap-2">
+                  <span>🗺️</span> Delhi Grid Surveillance Map
+                </div>
+                <div className="text-[11px] text-[#64748b] font-mono">
+                  8 Surveillance Intersections
+                </div>
+              </div>
 
-        {/* BOTTOM (Floating Horizontal Row of Stat Pills) */}
-        <div className="absolute bottom-5 left-6 right-6 z-20 flex items-center justify-center gap-4 pointer-events-none">
-          <div className="flex items-center gap-6 bg-white/[0.04] backdrop-blur-[16px] px-6 py-2.5 rounded-full border border-[#00d4ff]/20 shadow-[0_0_25px_rgba(0,212,255,0.08)] pointer-events-auto text-xs font-mono">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 uppercase">Active Trajectories:</span>
-              <span className="text-[#00d4ff] font-bold">{activeTrajectories}</span>
+              <div className="flex-1 rounded border border-[#252d3d] overflow-hidden">
+                <MapContainer
+                  center={[28.6139, 77.2090]}
+                  zoom={12}
+                  className="w-full h-full"
+                  style={{ background: '#0f1117' }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  />
+
+                  {/* Active Road Lines */}
+                  {activeRoads.map((pts, i) => (
+                    <Polyline
+                      key={i}
+                      positions={pts}
+                      pathOptions={{ color: '#3b82f6', weight: 2, opacity: 0.6 }}
+                    />
+                  ))}
+
+                  {/* 8 Camera Markers */}
+                  {mockCameras.map((cam) => (
+                    <CircleMarker
+                      key={cam.id}
+                      center={cam.pos}
+                      radius={7}
+                      pathOptions={{
+                        fillColor: cam.status === 'ACTIVE' ? '#3b82f6' : '#f59e0b',
+                        fillOpacity: 1,
+                        color: '#0f1117',
+                        weight: 2
+                      }}
+                    >
+                      <Popup>
+                        <div className="text-xs p-1 font-mono text-slate-900">
+                          <div className="font-bold text-blue-600">{cam.code}: {cam.name}</div>
+                          <div>Status: {cam.status}</div>
+                          <div>Reads Today: {cam.readsToday.toLocaleString()}</div>
+                          <div>Accuracy: {cam.accuracy}%</div>
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  ))}
+                </MapContainer>
+              </div>
             </div>
-            <div className="h-3 w-[1px] bg-white/20" />
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 uppercase">Congestion:</span>
-              <span className="text-amber-400 font-bold">HIGH (Sector 4)</span>
+
+            {/* RIGHT (35%): Recent Alerts Panel */}
+            <div className="lg:col-span-4 bg-[#1a1f2e] border border-[#252d3d] rounded-lg p-4 flex flex-col h-[380px]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#252d3d] mb-3">
+                <div className="text-xs font-semibold text-[#f1f5f9] flex items-center gap-2">
+                  <span>🚨</span> Recent Alerts
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#ef4444]/20 text-[#ef4444] font-mono">
+                  LIVE
+                </span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {mockAlerts.slice(0, 4).map((alert) => {
+                  const borderCol =
+                    alert.severity === 'critical'
+                      ? 'border-l-4 border-l-[#ef4444]'
+                      : alert.severity === 'warning'
+                      ? 'border-l-4 border-l-[#f59e0b]'
+                      : 'border-l-4 border-l-[#3b82f6]';
+
+                  return (
+                    <div
+                      key={alert.id}
+                      className={`p-2.5 bg-[#141821] border border-[#252d3d] ${borderCol} rounded text-xs`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-[#f1f5f9]">{alert.type}</span>
+                        <span className="text-[10px] font-mono text-[#64748b]">{alert.time}</span>
+                      </div>
+                      <div className="text-[11px] text-[#64748b] line-clamp-2 leading-relaxed">
+                        {alert.message}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => navigate('/alerts')}
+                className="w-full mt-3 py-2 bg-[#141821] hover:bg-[#252d3d] border border-[#252d3d] text-xs text-[#f1f5f9] rounded font-medium transition-colors"
+              >
+                View All Alerts →
+              </button>
             </div>
-            <div className="h-3 w-[1px] bg-white/20" />
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 uppercase">OCR Accuracy:</span>
-              <span className="text-emerald-400 font-bold">{ocrAccuracy}%</span>
+          </div>
+
+          {/* SECTION 3: Analytics Row (3 Cards) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Chart 1: Traffic Flow (24h) */}
+            <div className="bg-[#1a1f2e] border border-[#252d3d] rounded-lg p-4 h-[240px] flex flex-col">
+              <div className="text-xs font-semibold text-[#f1f5f9] mb-1">
+                Traffic Flow (24 Hours)
+              </div>
+              <div className="text-[11px] text-[#64748b] mb-2">Hourly vehicle volume distribution</div>
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={mockHourlyTraffic.slice(10, 22)}>
+                    <XAxis dataKey="hour" stroke="#64748b" fontSize={10} tickLine={false} />
+                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#141821', borderColor: '#252d3d', fontSize: '11px', borderRadius: '4px' }}
+                      itemStyle={{ color: '#3b82f6' }}
+                    />
+                    <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Chart 2: Top Congested Roads */}
+            <div className="bg-[#1a1f2e] border border-[#252d3d] rounded-lg p-4 h-[240px] flex flex-col">
+              <div className="text-xs font-semibold text-[#f1f5f9] mb-1">
+                Top Congested Segments
+              </div>
+              <div className="text-[11px] text-[#64748b] mb-2">Real-time corridor saturation percentage</div>
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={mockCongestedSegments.slice(0, 4)} layout="vertical">
+                    <XAxis type="number" stroke="#64748b" fontSize={10} domain={[0, 100]} />
+                    <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={9} width={90} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#141821', borderColor: '#252d3d', fontSize: '11px', borderRadius: '4px' }}
+                    />
+                    <Bar dataKey="congestion" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Card 3: ANPR OCR Performance Metric */}
+            <div className="bg-[#1a1f2e] border border-[#252d3d] rounded-lg p-4 h-[240px] flex flex-col justify-between">
+              <div>
+                <div className="text-xs font-semibold text-[#f1f5f9] mb-1">
+                  ANPR Engine Accuracy
+                </div>
+                <div className="text-[11px] text-[#64748b]">Real-time optical character recognition metric</div>
+              </div>
+
+              <div className="my-auto text-center">
+                <div className="text-4xl font-bold text-[#22c55e]">94.2%</div>
+                <div className="text-xs text-[#64748b] mt-1 font-mono">142,830 plates scanned today</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#252d3d] text-center">
+                <div className="bg-[#141821] p-2 rounded border border-[#252d3d]">
+                  <div className="text-[10px] text-[#64748b]">CONFIDENCE</div>
+                  <div className="text-xs font-bold text-[#f1f5f9] mt-0.5">0.96 Avg</div>
+                </div>
+                <div className="bg-[#141821] p-2 rounded border border-[#252d3d]">
+                  <div className="text-[10px] text-[#64748b]">LATENCY</div>
+                  <div className="text-xs font-bold text-[#3b82f6] mt-0.5">18 ms</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

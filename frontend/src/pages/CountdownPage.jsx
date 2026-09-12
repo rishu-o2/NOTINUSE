@@ -1,194 +1,84 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const BOOT_MESSAGES = [
-  'Initializing Traffic Command Center...',
-  'Connecting to ANPR Camera Network...',
-  'Loading AI Detection Engine...',
-  'Establishing Secure Connection...',
-  'System Ready.'
+const BOOT_LOGS = [
+  { prefix: '[OK]', text: 'Initializing Traffic Command Center...', color: 'text-[#22c55e]' },
+  { prefix: '[OK]', text: 'Connecting to ANPR Camera Network (8 nodes)...', color: 'text-[#22c55e]' },
+  { prefix: '[OK]', text: 'Loading YOLOv8 Detection Engine...', color: 'text-[#22c55e]' },
+  { prefix: '[OK]', text: 'Establishing Database Connection...', color: 'text-[#22c55e]' },
+  { prefix: '[READY]', text: 'System Online — 8 cameras active', color: 'text-[#3b82f6]' }
 ];
 
 export default function CountdownPage() {
-  const canvasRef = useRef(null);
   const navigate = useNavigate();
-  const [count, setCount] = useState(5);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [progress, setProgress] = useState(0);
 
-  // Canvas particle network animation
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let animationFrameId;
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      setVisibleCount(step);
+      setProgress(Math.round((step / BOOT_LOGS.length) * 100));
 
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-
-    const PARTICLE_COUNT = 160;
-    const particles = [];
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        radius: Math.random() > 0.85 ? Math.random() * 2.5 + 2 : Math.random() * 1.5 + 0.6,
-        speed: Math.random() * 1.5 + 0.4,
-        alpha: Math.random() * 0.8 + 0.2,
-        baseAlpha: Math.random() * 0.8 + 0.2,
-        drift: (Math.random() - 0.5) * 0.5
-      });
-    }
-
-    const render = () => {
-      ctx.fillStyle = '#050a18';
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw trails / network connections
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < 90) {
-            const lineAlpha = (1 - dist / 90) * 0.25 * Math.min(particles[i].alpha, particles[j].alpha);
-            ctx.strokeStyle = `rgba(0, 212, 255, ${lineAlpha})`;
-            ctx.lineWidth = 0.8;
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
+      if (step >= BOOT_LOGS.length) {
+        clearInterval(interval);
+        setTimeout(() => {
+          navigate('/login');
+        }, 500);
       }
+    }, 800);
 
-      // Draw & update particles
-      particles.forEach((p) => {
-        p.y -= p.speed;
-        p.x += p.drift;
-        // Fade out as it ascends
-        const heightRatio = p.y / height;
-        p.alpha = p.baseAlpha * Math.max(0.1, heightRatio);
-
-        if (p.y < 0) {
-          p.y = height + 10;
-          p.x = Math.random() * width;
-          p.alpha = p.baseAlpha;
-        }
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 212, 255, ${p.alpha})`;
-        ctx.shadowBlur = p.radius > 2 ? 12 : 4;
-        ctx.shadowColor = '#00d4ff';
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      });
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  // Countdown and message sequencing
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCount((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setTimeout(() => {
-            navigate('/login');
-          }, 500);
-          return 0;
-        }
-        return prev - 1;
-      });
-
-      setCurrentStep((prev) => (prev < BOOT_MESSAGES.length - 1 ? prev + 1 : prev));
-    }, 1000);
-
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [navigate]);
 
-  const progressPercent = ((5 - count) / 5) * 100;
-
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#050a18] select-none flex flex-col justify-between items-center py-10">
-      {/* Background Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full z-0" />
-
-      {/* Top Header */}
-      <div className="relative z-10 text-center tracking-widest text-xs md:text-sm font-semibold text-[#00d4ff] uppercase bg-white/[0.03] backdrop-blur-md px-6 py-2.5 rounded-full border border-[#00d4ff]/30 shadow-[0_0_20px_rgba(0,212,255,0.15)]">
-        BHARAT ELECTRONICS LIMITED · SIH 2026
+    <div className="w-screen h-screen bg-[#0f1117] flex flex-col justify-between p-8 font-mono select-none">
+      {/* Top Left Header */}
+      <div className="text-xs text-[#64748b]">
+        BEL · SIH 2026
       </div>
 
-      {/* Central HUD / Countdown */}
-      <div className="relative z-10 flex flex-col items-center justify-center my-auto">
-        {/* Giant Counter */}
-        <div
-          className="font-black text-white leading-none tracking-tight text-center text-glow"
-          style={{ fontSize: 'clamp(100px, 20vw, 180px)' }}
-        >
-          {count}
+      {/* Center Terminal Box */}
+      <div className="max-w-xl w-full mx-auto bg-[#1a1f2e] border border-[#252d3d] rounded-lg p-6 shadow-none">
+        {/* Terminal Header Bar */}
+        <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#252d3d] text-xs text-[#64748b]">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]/60" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]/60" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/60" />
+          </div>
+          <div>boot-sequence.sh</div>
+        </div>
+
+        {/* Console Logs */}
+        <div className="space-y-2 text-xs min-h-[140px]">
+          {BOOT_LOGS.slice(0, visibleCount).map((log, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <span className={`font-bold ${log.color}`}>{log.prefix}</span>
+              <span className="text-[#f1f5f9]">{log.text}</span>
+            </div>
+          ))}
         </div>
 
         {/* Progress Bar */}
-        <div className="w-72 md:w-96 h-2 bg-slate-900/80 rounded-full mt-4 overflow-hidden border border-[#00d4ff]/30 p-[1px] shadow-[0_0_15px_rgba(0,212,255,0.2)]">
-          <div
-            className="h-full bg-gradient-to-r from-[#00d4ff]/70 to-[#00d4ff] rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_#00d4ff]"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        {/* Boot Messages */}
-        <div className="mt-8 flex flex-col items-center gap-1.5 min-h-[140px]">
-          {BOOT_MESSAGES.map((msg, index) => {
-            const isCurrent = index === currentStep;
-            const isCompleted = index < currentStep;
-            const isFuture = index > currentStep;
-
-            if (isFuture) return null;
-
-            return (
-              <div
-                key={msg}
-                className={`text-xs md:text-sm tracking-wide font-mono transition-all duration-500 flex items-center gap-2 ${
-                  isCurrent
-                    ? 'text-[#00d4ff] font-medium scale-105 opacity-100 drop-shadow-[0_0_8px_rgba(0,212,255,0.8)]'
-                    : isCompleted
-                    ? 'text-gray-400 opacity-60'
-                    : 'opacity-0'
-                }`}
-              >
-                <span className={isCurrent ? 'animate-pulse text-[#00d4ff]' : 'text-gray-500'}>
-                  {isCompleted ? '✓' : '>'}
-                </span>
-                <span>{msg}</span>
-              </div>
-            );
-          })}
+        <div className="mt-6 pt-4 border-t border-[#252d3d]">
+          <div className="flex items-center justify-between text-[11px] text-[#64748b] mb-1.5">
+            <span>System Boot Status</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-[#141821] rounded-full overflow-hidden border border-[#252d3d]">
+            <div
+              className="h-full bg-[#3b82f6] transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Bottom Footer Info */}
-      <div className="relative z-10 text-[11px] font-mono text-gray-500 tracking-wider">
-        AI URBAN TRAFFIC COMMAND SYSTEM · v2.6.0-INIT
+      {/* Bottom Footer */}
+      <div className="text-center text-[11px] text-[#334155]">
+        Urban Traffic Analytics System · Version 2.4.0-Production
       </div>
     </div>
   );
