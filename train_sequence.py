@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 try:
     from .lstm_transformer import LSTMTransformer
 except ImportError:
-    from module.lstm_transformer import LSTMTransformer
+    from lstm_transformer import LSTMTransformer
 
 VIDEO_EXTENSIONS = {".avi", ".mp4", ".mov", ".mkv", ".webm"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}

@@ -2,6 +2,10 @@
 frames/
 vehicle_crops/
 features/
+anpr_output/
+bytetrack_output/
+yolo_output/
+frontend/public/videos/
 
 # Node.js
 node_modules/
