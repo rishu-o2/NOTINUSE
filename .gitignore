@@ -1,6 +1,11 @@
 # Generated data
 frames/
 
+# Node.js
+node_modules/
+dist/
+*.log
+
 # Python artifacts
 __pycache__/
 *.py[cod]
