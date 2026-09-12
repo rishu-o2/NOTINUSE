@@ -1,5 +1,7 @@
 # Generated data
 frames/
+vehicle_crops/
+features/
 
 # Node.js
 node_modules/
@@ -9,6 +11,27 @@ dist/
 # Python artifacts
 __pycache__/
 *.py[cod]
+*.pyc
+
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# SQLite local database
+*.db
+*.db-journal
+*.sqlite
+
+# Environment variables
+.env
+.env.local
+
+# Model weights & checkpoints
+*.pt
+*.pth
+*.ckpt
+*.h5
 
 # VS Code workspace settings
 .vscode/
